@@ -1,11 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
     tools:context=".View.MangaDetailActivity">
-
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content">
     <ImageView
         android:layout_width="150dp"
         android:layout_height="200dp"
@@ -18,7 +22,7 @@
         android:id="@+id/name_detail"
         android:layout_marginTop="10dp"
         android:textSize="20sp"
-        android:textColor="#000000"
+        android:textColor="#ffffff"
         android:layout_toRightOf="@+id/img_detail"
         />
 
@@ -29,19 +33,28 @@
         android:id="@+id/tags"
         android:layout_below="@id/name_detail"
         android:layout_toRightOf="@id/img_detail"
-        android:textColor="#000000"
+        android:textColor="#ffffff"
         android:textSize="12sp"
+        />
+    </RelativeLayout>
+    <Button
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:onClick="onClick"
+        android:background="#ffffff"
+        android:textColor="#000000"
+        android:id="@+id/same_author"
         />
 
     <android.support.v7.widget.RecyclerView
-        android:layout_height="match_parent"
+        android:layout_height="wrap_content"
         android:layout_width="match_parent"
         android:id="@+id/recycle_chapter"
-        android:layout_below="@+id/img_detail"
         android:layout_marginTop="10dp"
         />
 
 
 
 
-</RelativeLayout>
+</LinearLayout>

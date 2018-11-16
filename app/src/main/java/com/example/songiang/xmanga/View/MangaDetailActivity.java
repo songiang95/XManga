@@ -1,10 +1,12 @@
 package com.example.songiang.xmanga.View;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -23,7 +25,7 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class MangaDetailActivity extends Activity {
+public class MangaDetailActivity extends Activity{
     private Manga manga;
     private ArrayList<Chapter> listChapter;
     private RecyclerView recyclerView;
@@ -31,6 +33,9 @@ public class MangaDetailActivity extends Activity {
     private TextView tvName, tvAuthor, tvTags, tvDescription;
     private String tags="";
     private DetailAdapter detailAdapter;
+    private String author_url = "https://hentaivn.net";
+    private String author_name = "Cùng tác giả ";
+    private TextView tv_author;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,8 +46,18 @@ public class MangaDetailActivity extends Activity {
         detailAdapter = new DetailAdapter(this,listChapter);
 
         initView();
+
         recyclerView.setAdapter(detailAdapter);
         new GetMangaDetailTask().execute(manga.getUrl());
+
+    }
+    public void onClick(View view)
+    {
+
+            Intent intent = new Intent(this, SameAuthorActitvity.class);
+            intent.putExtra("AUTHOR_URL", author_url);
+            startActivity(intent);
+
 
     }
 
@@ -79,6 +94,7 @@ public class MangaDetailActivity extends Activity {
                 if (document != null) {
                     //select chapter
                     Elements chapterElements = document.select("tr");
+                    Elements authorElements = document.select("a[href^=/tacgia]");
                     for (Element element : chapterElements) {
                         Chapter chapter = new Chapter();
                         Element urlSubject = element.getElementsByTag("a").first();
@@ -95,6 +111,12 @@ public class MangaDetailActivity extends Activity {
                         }
                         listChapter.add(chapter);
                     }//end get chapter
+                    for (Element element:authorElements)
+                    {
+                        Element authorSubject = element.getElementsByTag("a").first();
+                              author_url += authorSubject.attr("href");
+                              author_name += authorSubject.text();
+                    }
                     //get tag
                     Elements tagsElement = document.select(".tag");
                     for(Element element:tagsElement)
@@ -121,6 +143,8 @@ public class MangaDetailActivity extends Activity {
         protected void onPostExecute(ArrayList<Chapter> chapters) {
             super.onPostExecute(chapters);
             tvTags.setText(tags);
+            tv_author = findViewById(R.id.same_author);
+            tv_author.setText(author_name);
             detailAdapter.notifyDataSetChanged();
         }
     }
