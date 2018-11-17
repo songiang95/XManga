@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AbsListView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.songiang.xmanga.Adapter.MangaAdapter;
@@ -170,7 +171,13 @@ public class ListMangaFragment extends Fragment {
         @Override
         protected void onPostExecute(ArrayList<Manga> mangas) {
             super.onPostExecute(mangas);
+            if (listManga.isEmpty())
+            {
+                TextView tvNotFound = getActivity().findViewById(R.id.tv_not_found);
+                tvNotFound.setText("Not found");
+            }
             mangaAdapter.notifyDataSetChanged();
+
         }
     }
 }

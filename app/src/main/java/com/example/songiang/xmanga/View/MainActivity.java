@@ -16,8 +16,6 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.support.v7.widget.SearchView;
-
-
 import com.example.songiang.xmanga.R;
 
 public class MainActivity extends AppCompatActivity {
@@ -51,11 +49,10 @@ public class MainActivity extends AppCompatActivity {
         SearchManager searchManager = (SearchManager) getSystemService(Context.SEARCH_SERVICE);
         SearchView searchView =(SearchView) menu.findItem(R.id.action_search).getActionView();
         searchView.setSearchableInfo(searchManager.getSearchableInfo(getComponentName()));
-        searchView.setIconifiedByDefault(false);
+        searchView.setIconifiedByDefault(true);
         searchView.setSubmitButtonEnabled(true);
         return true;
     }
-
     //Set click listener
   private class DrawerItemClickListener implements ListView.OnItemClickListener {
         @Override

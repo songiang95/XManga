@@ -53,10 +53,12 @@ public class ReadingActivity extends AppCompatActivity {
             try {
                 document = (Document) Jsoup.connect(strings[0]).get();
                 if (document != null) {
-                    Elements elements = document.select("img[src$=1200]");
-                    for (Element element : elements) {
+                    Element element = document.selectFirst("div#image");
+                    Elements elements =  element.getElementsByTag("img");
+                   // Elements elements = document.select("img[src$=1200]");
+                    for (Element e : elements) {
 
-                        Element imgSubject = element.getElementsByTag("img").first();
+                        Element imgSubject = e.getElementsByTag("img").first();
                         if (imgSubject!=null)
                         {
                             String img_url = imgSubject.attr("src");
