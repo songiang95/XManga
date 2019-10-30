@@ -4,11 +4,12 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.v7.widget.GridLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.view.View;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -23,47 +24,55 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
-public class MangaDetailActivity extends Activity{
+import butterknife.BindView;
+import butterknife.ButterKnife;
+import butterknife.OnClick;
+
+public class MangaDetailActivity extends Activity {
+    @BindView(R.id.img_detail)
+    ImageView imgDetail;
+    @BindView(R.id.name_detail)
+    TextView nameDetail;
+    @BindView(R.id.tags)
+    TextView tvTags;
+    @BindView(R.id.same_author)
+    Button sameAuthor;
+    @BindView(R.id.recycle_chapter)
+    RecyclerView recycleChapter;
     private Manga manga;
     private ArrayList<Chapter> listChapter;
-    private RecyclerView recyclerView;
-    private ImageView imgView;
-    private TextView tvName, tvAuthor, tvTags, tvDescription;
-    private String tags="";
     private DetailAdapter detailAdapter;
     private String author_url = "https://hentaivn.net";
     private String author_name = "Cùng tác giả ";
-    private TextView tv_author;
+    private String tags;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manga_detail);
+        ButterKnife.bind(this);
         manga = (Manga) getIntent().getSerializableExtra("MANGA");
         listChapter = new ArrayList<Chapter>();
-        detailAdapter = new DetailAdapter(this,listChapter);
+        detailAdapter = new DetailAdapter(this, listChapter);
 
         initView();
 
-        recyclerView.setAdapter(detailAdapter);
-        new GetMangaDetailTask().execute(manga.getUrl());
-
-    }
-    public void onClick(View view)
-    {
-
-            Intent intent = new Intent(this, SameAuthorActitvity.class);
-            intent.putExtra("AUTHOR_URL", author_url);
-            startActivity(intent);
-
+        recycleChapter.setAdapter(detailAdapter);
+        new GetMangaDetailTask(this).execute(manga.getUrl());
 
     }
 
-    private void initView()
-    {
-        imgView = findViewById(R.id.img_detail);
+    @OnClick(R.id.same_author)
+    public void onClickSameAuthor() {
+        Intent intent = new Intent(this, SameAuthorActitvity.class);
+        intent.putExtra("AUTHOR_URL", author_url);
+        startActivity(intent);
+    }
+
+    private void initView() {
         Glide.with(this)
                 .load(manga.getImg())
                 .asBitmap()
@@ -71,18 +80,20 @@ public class MangaDetailActivity extends Activity{
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .animate(android.R.anim.fade_in)
                 .approximate()
-                .into(imgView);
-        tvName = findViewById(R.id.name_detail);
-        tvName.setText(manga.getName());
+                .into(imgDetail);
 
-        tvTags = findViewById(R.id.tags);
-
-        recyclerView = findViewById(R.id.recycle_chapter);
-        recyclerView.setLayoutManager(new GridLayoutManager(this,5));
-        recyclerView.hasFixedSize();
+        recycleChapter.setLayoutManager(new GridLayoutManager(this, 5));
+        recycleChapter.hasFixedSize();
     }
 
-    private class GetMangaDetailTask extends AsyncTask<String, Void, ArrayList<Chapter>> {
+    private static class GetMangaDetailTask extends AsyncTask<String, Void, ArrayList<Chapter>> {
+
+        WeakReference<MangaDetailActivity> mangaDetailActivityWeakReference;
+
+        GetMangaDetailTask(MangaDetailActivity activity) {
+            mangaDetailActivityWeakReference = new WeakReference<>(activity);
+        }
+
         @Override
         protected ArrayList<Chapter> doInBackground(String... url) {
             Document document = null;
@@ -109,43 +120,38 @@ public class MangaDetailActivity extends Activity{
 
                             chapter.setName(chapter_name);
                         }
-                        listChapter.add(chapter);
+                        mangaDetailActivityWeakReference.get().listChapter.add(chapter);
                     }//end get chapter
-                    for (Element element:authorElements)
-                    {
+                    for (Element element : authorElements) {
                         Element authorSubject = element.getElementsByTag("a").first();
-                              author_url += authorSubject.attr("href");
-                              author_name += authorSubject.text();
+                        mangaDetailActivityWeakReference.get().author_url += authorSubject.attr("href");
+                        mangaDetailActivityWeakReference.get().author_name += authorSubject.text();
                     }
                     //get tag
                     Elements tagsElement = document.select(".tag");
-                    for(Element element:tagsElement)
-                    {
+                    for (Element element : tagsElement) {
                         Element tagSubject = element.getElementsByTag("a").first();
-                        if (tagSubject!=null)
-                        {
-                            String tag = tagSubject.text()+" ";
-                            tags += tag;
+                        if (tagSubject != null) {
+                            String tag = tagSubject.text() + " ";
+                            mangaDetailActivityWeakReference.get().tags += tag;
                         }
                     }
 
 
                 }
 
-            }catch (IOException e)
-            {
+            } catch (IOException e) {
                 e.printStackTrace();
             }
-            return listChapter;
+            return mangaDetailActivityWeakReference.get().listChapter;
         }
 
         @Override
         protected void onPostExecute(ArrayList<Chapter> chapters) {
             super.onPostExecute(chapters);
-            tvTags.setText(tags);
-            tv_author = findViewById(R.id.same_author);
-            tv_author.setText(author_name);
-            detailAdapter.notifyDataSetChanged();
+            mangaDetailActivityWeakReference.get().tvTags.setText(mangaDetailActivityWeakReference.get().tags);
+            mangaDetailActivityWeakReference.get().sameAuthor.setText(mangaDetailActivityWeakReference.get().author_name);
+            mangaDetailActivityWeakReference.get().detailAdapter.notifyDataSetChanged();
         }
     }
 }
