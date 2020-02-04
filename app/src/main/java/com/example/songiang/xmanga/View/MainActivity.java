@@ -2,9 +2,10 @@ package com.example.songiang.xmanga.View;
 
 import android.app.SearchManager;
 import android.content.Context;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.Message;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -35,7 +36,6 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
-import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -58,13 +58,15 @@ public class MainActivity extends AppCompatActivity {
     private int mCurrentPosition = 0;
     private List<Manga> mListManga;
     private MangaAdapter mAdapter;
-    private String mCurrentUrl;
-    private LoadHomeTask mLoadTask;
+    private String mCurrentUrl = "https://hentaivn.net/danh-sach.html";
     private int pageNext = 2;
     private int pageMax, visibleItems, totalItems, firstVisibleItems;
     private boolean isScrolling;
     private boolean isLastManga;
     private RecyclerView.LayoutManager mLayoutManager;
+    private LoadHomeThread mLoadHomeThread;
+    private final int SHOW_LOADING_PROGRESS_MSG = 1;
+    private final int SHOW_MANGA_MSG = 2;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -77,17 +79,29 @@ public class MainActivity extends AppCompatActivity {
         initLeftDrawer();
         initRv();
         setSupportActionBar(toolbar);
-        if (savedInstanceState == null) {
-            mCurrentUrl = getType(mCurrentPosition);
-            setActionBarTitle(mCurrentPosition);
-            mLoadTask = new LoadHomeTask(MainActivity.this);
-            mLoadTask.execute(mCurrentUrl);
-        }
+        mLoadHomeThread = new LoadHomeThread();
+        mLoadHomeThread.start();
+//        mLoadHomeThread.startLoad(mCurrentUrl);
+
+
+//        if (savedInstanceState == null) {
+//            mCurrentUrl = getType(mCurrentPosition);
+//            setActionBarTitle(mCurrentPosition);
+//            mLoadTask = new LoadHomeTask(MainActivity.this);
+//            mLoadTask.execute(mCurrentUrl);
+//        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        mLoadHomeThread.exit();
+
     }
 
     private void initRv() {
         mLayoutManager = new GridLayoutManager(this, 3);
-
+        rvHome.setLayoutManager(mLayoutManager);
         rvHome.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
@@ -126,9 +140,8 @@ public class MainActivity extends AppCompatActivity {
         } else
             page = "?page=";
         page = page + pageNext;
-        new LoadHomeTask(this).execute(mCurrentUrl + page);
+        mLoadHomeThread.startLoad(mCurrentUrl + page);
         pageNext++;
-        Log.d("abba", "updateRecycleView: " + mCurrentUrl + page);
     }
 
     private void initLeftDrawer() {
@@ -137,18 +150,13 @@ public class MainActivity extends AppCompatActivity {
         leftDrawer.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                pbLoading.setVisibility(View.VISIBLE);
                 mListManga.clear();
                 drawerLayout.closeDrawer(Gravity.RIGHT, true);
                 mCurrentUrl = getType(position);
                 mCurrentPosition = position;
                 setActionBarTitle(mCurrentPosition);
-                if (mLoadTask != null) {
-                    mLoadTask.cancel(true);
-                    mLoadTask = null;
-                    mLoadTask = new LoadHomeTask(MainActivity.this);
-                    mLoadTask.execute(mCurrentUrl);
-                }
+                mLoadHomeThread.startLoad(mCurrentUrl);
+
             }
         });
     }
@@ -248,78 +256,95 @@ public class MainActivity extends AppCompatActivity {
         Objects.requireNonNull(getSupportActionBar()).setTitle(title);
     }
 
-    private static class LoadHomeTask extends AsyncTask<String, Void, List<Manga>> {
 
-        private WeakReference<MainActivity> mainActivityWeakReference;
-
-        LoadHomeTask(MainActivity activity) {
-            mainActivityWeakReference = new WeakReference<>(activity);
-        }
+    private class LoadHomeThread extends Thread {
+        private Handler mBackgroundHandler;
+        private Handler mUiHandler;
 
         @Override
-        protected List<Manga> doInBackground(String... strings) {
-            List<Manga> listManga = new ArrayList<>();
-            MainActivity activity = mainActivityWeakReference.get();
-            try {
-                Document document = Jsoup.connect(strings[0]).get();
-                if (document != null) {
-                    Elements page = document.select(".pagination");
-
-                    Elements sub = document.select(".item");
-                    for (Element element : sub) {
-                        Manga manga = new Manga();
-                        Element chapSubject = element.getElementsByTag("p").first();
-                        Element imgSubject = element.getElementsByTag("img").first();
-                        Element linkSubject = element.getElementsByTag("a").first();
-
-
-                        //pasre to model
-                        if (chapSubject != null) {
-                            String chap = chapSubject.ownText();
-                            chap = chap.substring(2);
-                            manga.setChapterNum(chap);
-                        }
-                        if (imgSubject != null) {
-                            String imgUrl = imgSubject.attr("src");
-                            String name = imgSubject.attr("alt");
-                            manga.setName(name);
-                            manga.setImg(imgUrl);
-                        }
-                        if (linkSubject != null) {
-                            String link = linkSubject.attr("href");
-                            link = "https://hentaivn.net" + link;
-                            manga.setUrl(link);
-                        }
-
-                        listManga.add(manga);
+        public void run() {
+            super.run();
+            Looper.prepare();
+            mBackgroundHandler = new Handler();
+            mUiHandler = new Handler(getMainLooper()) {
+                @Override
+                public void handleMessage(Message msg) {
+                    super.handleMessage(msg);
+                    switch (msg.what) {
+                        case SHOW_LOADING_PROGRESS_MSG:
+                            pbLoading.setVisibility(View.VISIBLE);
+                            break;
+                        case SHOW_MANGA_MSG:
+                            pbLoading.setVisibility(View.GONE);
+                            ArrayList mangaList = (ArrayList) msg.obj;
+                            mListManga.addAll(mangaList);
+                            if (mAdapter == null) {
+                                mAdapter = new MangaAdapter(MainActivity.this, mListManga);
+                                rvHome.setAdapter(mAdapter);
+                            } else {
+                                mAdapter.notifyItemRangeInserted(mListManga.size() - mangaList.size(), mangaList.size());
+                            }
+                            break;
                     }
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            if (listManga.isEmpty()) {
-                mainActivityWeakReference.get().isLastManga = true;
-            }
-            return listManga;
+            };
+            startLoad(mCurrentUrl);
+            Looper.loop();
         }
 
-        @Override
-        protected void onPostExecute(List<Manga> mangas) {
-            MainActivity mainActivity = mainActivityWeakReference.get();
-            mainActivity.pbLoading.setVisibility(View.GONE);
-            super.onPostExecute(mangas);
-            if (mangas.isEmpty()) {
-                Toast.makeText(mainActivity, "No more manga", Toast.LENGTH_SHORT).show();
-            } else if (mainActivity.mListManga.isEmpty()) {
-                mainActivity.mListManga.addAll(mangas);
-                mainActivity.mAdapter = new MangaAdapter(mainActivity, (ArrayList<Manga>) mainActivity.mListManga);
-                mainActivity.rvHome.setAdapter(mainActivity.mAdapter);
-                mainActivity.rvHome.setLayoutManager(mainActivity.mLayoutManager);
-            } else {
-                int insertPosition = mainActivity.mListManga.size();
-                mainActivity.mListManga.addAll(mangas);
-                mainActivity.mAdapter.notifyItemRangeInserted(insertPosition, mangas.size());
-            }
+        public void startLoad(String url) {
+            mBackgroundHandler.post(() -> {
+                Message showProgressMsg = mUiHandler.obtainMessage(SHOW_LOADING_PROGRESS_MSG);
+                mUiHandler.sendMessage(showProgressMsg);
+                List<Manga> listManga = new ArrayList<>();
+                try {
+                    Document document = Jsoup.connect(url).get();
+                    if (document != null) {
+                        Elements page = document.select(".pagination");
+
+                        Elements sub = document.select(".item");
+                        for (Element element : sub) {
+                            Manga manga = new Manga();
+                            Element chapSubject = element.getElementsByTag("p").first();
+                            Element imgSubject = element.getElementsByTag("img").first();
+                            Element linkSubject = element.getElementsByTag("a").first();
+
+
+                            //pasre to model
+                            if (chapSubject != null) {
+                                String chap = chapSubject.ownText();
+                                chap = chap.substring(2);
+                                manga.setChapterNum(chap);
+                            }
+                            if (imgSubject != null) {
+                                String imgUrl = imgSubject.attr("src");
+                                String name = imgSubject.attr("alt");
+                                manga.setName(name);
+                                manga.setImg(imgUrl);
+                            }
+                            if (linkSubject != null) {
+                                String link = linkSubject.attr("href");
+                                link = "https://hentaivn.net" + link;
+                                manga.setUrl(link);
+                            }
+
+                            listManga.add(manga);
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } finally {
+                    if (!listManga.isEmpty()) {
+                        Message showMangaMsg = mUiHandler.obtainMessage(SHOW_MANGA_MSG, listManga);
+                        mUiHandler.sendMessage(showMangaMsg);
+                    }
+                }
+            });
+        }
+
+        public void exit() {
+            mBackgroundHandler.getLooper().quit();
         }
     }
+
 }//end MainActivity

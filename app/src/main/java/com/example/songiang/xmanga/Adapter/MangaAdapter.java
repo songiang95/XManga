@@ -1,6 +1,6 @@
 package com.example.songiang.xmanga.Adapter;
 
-import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,18 +16,18 @@ import com.example.songiang.xmanga.Model.Manga;
 import com.example.songiang.xmanga.R;
 import com.example.songiang.xmanga.View.MangaDetailActivity;
 
-import java.util.ArrayList;
+import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
 
 public class MangaAdapter extends RecyclerView.Adapter<MangaAdapter.MangaHolder> {
-    private Activity activity;
-    private ArrayList<Manga> listManga;
+    private Context mContext;
+    private List<Manga> listManga;
 
-    public MangaAdapter(Activity activity, ArrayList<Manga> list) {
-        this.activity = activity;
+    public MangaAdapter(Context context, List<Manga> list) {
+        this.mContext = context;
         this.listManga = list;
     }
 
@@ -41,7 +41,7 @@ public class MangaAdapter extends RecyclerView.Adapter<MangaAdapter.MangaHolder>
     public void onBindViewHolder(final MangaHolder holder, int position) {
         final Manga manga = listManga.get(position);
         holder.tvMangaName.setText(manga.getName());
-        Glide.with(activity)
+        Glide.with(mContext)
                 .load(manga.getImg())
                 .asBitmap()
                 .atMost()
@@ -52,7 +52,7 @@ public class MangaAdapter extends RecyclerView.Adapter<MangaAdapter.MangaHolder>
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                activity.startActivity(new Intent(activity, MangaDetailActivity.class).putExtra("MANGA", manga));
+                mContext.startActivity(new Intent(mContext, MangaDetailActivity.class).putExtra("MANGA", manga));
             }
         });
 

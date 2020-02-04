@@ -35,7 +35,8 @@
             android:layout_below="@id/toolbar"
             android:layout_centerHorizontal="true"
             android:layout_marginTop="30dp"
-            android:indeterminateDrawable="@drawable/bg_progress" />
+            android:indeterminateDrawable="@drawable/bg_progress"
+            android:visibility="gone" />
     </RelativeLayout>
 
     <ListView

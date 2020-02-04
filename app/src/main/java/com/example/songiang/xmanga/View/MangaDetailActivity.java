@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.example.songiang.xmanga.Adapter.DetailAdapter;
 import com.example.songiang.xmanga.Model.Chapter;
 import com.example.songiang.xmanga.Model.Manga;
@@ -75,11 +74,6 @@ public class MangaDetailActivity extends Activity {
     private void initView() {
         Glide.with(this)
                 .load(manga.getImg())
-                .asBitmap()
-                .atMost()
-                .diskCacheStrategy(DiskCacheStrategy.ALL)
-                .animate(android.R.anim.fade_in)
-                .approximate()
                 .into(imgDetail);
 
         recycleChapter.setLayoutManager(new GridLayoutManager(this, 5));
@@ -97,7 +91,6 @@ public class MangaDetailActivity extends Activity {
         @Override
         protected ArrayList<Chapter> doInBackground(String... url) {
             Document document = null;
-
 
             try {
                 document = (Document) Jsoup.connect(url[0]).get();
@@ -136,8 +129,6 @@ public class MangaDetailActivity extends Activity {
                             mangaDetailActivityWeakReference.get().tags += tag;
                         }
                     }
-
-
                 }
 
             } catch (IOException e) {
