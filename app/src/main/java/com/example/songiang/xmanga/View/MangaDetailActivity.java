@@ -66,8 +66,8 @@ public class MangaDetailActivity extends Activity {
 
     @OnClick(R.id.same_author)
     public void onClickSameAuthor() {
-        Intent intent = new Intent(this, SameAuthorActitvity.class);
-        intent.putExtra("AUTHOR_URL", author_url);
+        Intent intent = new Intent(this, ReadOnlineActivity.class);
+        intent.putExtra("EXTRA_URL", manga.getUrl());
         startActivity(intent);
     }
 
